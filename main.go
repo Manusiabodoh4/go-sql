@@ -2,16 +2,20 @@ package main
 
 import (
 	routes "github.com/Manusiabodoh4/go-sql/src/routes"
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
 )
 
 func main() {
 
-	router := gin.Default()
+	app := echo.New()
 
-	routes.NewAccountRoutes(router.Group("/v1/account"))
+	app.Use(middleware.Logger())
+	app.Use(middleware.CORS())
 
-	router.Run(":5678")
+	routes.NewAccountRoutes(app.Group("/v1/account"))
+
+	app.Logger.Fatal(app.Start(":4567"))
 
 }

@@ -1,49 +1,64 @@
 package controller
 
 import (
+	"net/http"
+
+	"github.com/Manusiabodoh4/go-sql/src/entity"
 	"github.com/Manusiabodoh4/go-sql/src/repository"
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 )
 
 type AccountController interface {
-	Login(c *gin.Context)
-	Register(c *gin.Context)
-	GetAll(c *gin.Context)
-	GetByEmail(c *gin.Context)
+	Login(c echo.Context) error
+	Register(c echo.Context) error
+	GetAll(c echo.Context) error
+	GetByEmail(c echo.Context) error
 }
 
-type AccontImplController struct{}
+type AccountControllerImpl struct{}
 
 func NewAccountController() AccountController {
-	return &AccontImplController{}
+	return &AccountControllerImpl{}
 }
 
-func (st *AccontImplController) Login(c *gin.Context) {
-
+func (st *AccountControllerImpl) Login(c echo.Context) error {
+	return nil
 }
 
-func (st *AccontImplController) Register(c *gin.Context) {
-
+func (st *AccountControllerImpl) Register(c echo.Context) error {
+	return nil
 }
 
-func (st *AccontImplController) GetAll(c *gin.Context) {
+func (st *AccountControllerImpl) GetAll(c echo.Context) error {
 
 	db := repository.GetConnectionPostgres()
 
-	repoAccount := repository.NewAccountRepo(db)
-
-	res, error := repoAccount.FindAll(c)
-
-	if error != nil {
-		c.JSON(500, error)
-	}
-
 	defer db.Close()
 
-	c.JSON(200, res)
+	repoAccount := repository.NewAccountRepo(db)
+
+	res := entity.TemplateResponse{
+		Status:  http.StatusOK,
+		Message: "",
+		Data:    nil,
+	}
+
+	data, error := repoAccount.FindAll(c.Request().Context())
+
+	if error != nil {
+		res.Status = http.StatusInternalServerError
+		res.Message = "Terjadi kesalahan ketika menarik data"
+		res.Data = error
+	}
+
+	res.Status = http.StatusOK
+	res.Message = "Berhasil mengembalikan data"
+	res.Data = data
+
+	return c.JSON(http.StatusOK, res)
 
 }
 
-func (st *AccontImplController) GetByEmail(c *gin.Context) {
-
+func (st *AccountControllerImpl) GetByEmail(c echo.Context) error {
+	return nil
 }

@@ -2,10 +2,10 @@ package routes
 
 import (
 	"github.com/Manusiabodoh4/go-sql/src/controller"
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 )
 
-func NewAccountRoutes(router *gin.RouterGroup) {
+func NewAccountRoutes(router *echo.Group) {
 
 	accountController := controller.NewAccountController()
 
