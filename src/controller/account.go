@@ -2,9 +2,11 @@ package controller
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/Manusiabodoh4/go-sql/src/entity"
 	"github.com/Manusiabodoh4/go-sql/src/repository"
+	"github.com/Manusiabodoh4/go-sql/src/tools"
 	"github.com/labstack/echo/v4"
 )
 
@@ -22,7 +24,46 @@ func NewAccountController() AccountController {
 }
 
 func (st *AccountControllerImpl) Login(c echo.Context) error {
-	return nil
+
+	defer tools.Recover(c)
+
+	body := entity.RequestAccountLogin{}
+
+	err := c.Bind(body)
+
+	if err != nil {
+		tools.SenderResponseJSON(c, http.StatusInternalServerError, "Server Error", nil)
+		panic(err)
+	}
+
+	group := &sync.WaitGroup{}
+
+	channel := make(chan entity.TemplateChannelResponse)
+
+	defer close(channel)
+
+	db := repository.GetConnectionPostgres()
+
+	defer db.Close()
+
+	repoAccount := repository.NewAccountRepo(db)
+
+	go repoAccount.FindByEmail(c.Request().Context(), body.Email, group, channel)
+
+	data := <-channel
+
+	if data.Error != nil {
+		tools.SenderResponseJSON(c, http.StatusInternalServerError, "Server Error", nil)
+		panic(data.Error)
+	}
+
+	group.Wait()
+
+	if data.Data == nil {
+		return tools.SenderResponseJSON(c, http.StatusNotFound, "Email Belum Terdaftar", nil)
+	}
+
+	return tools.SenderResponseJSON(c, http.StatusOK, "Berhasil Login", data.Data)
 }
 
 func (st *AccountControllerImpl) Register(c echo.Context) error {
@@ -31,34 +72,70 @@ func (st *AccountControllerImpl) Register(c echo.Context) error {
 
 func (st *AccountControllerImpl) GetAll(c echo.Context) error {
 
+	defer tools.Recover(c)
+
+	group := &sync.WaitGroup{}
+
+	channel := make(chan entity.TemplateChannelResponse)
+
+	defer close(channel)
+
 	db := repository.GetConnectionPostgres()
 
 	defer db.Close()
 
 	repoAccount := repository.NewAccountRepo(db)
 
-	res := entity.TemplateResponse{
-		Status:  http.StatusOK,
-		Message: "",
-		Data:    nil,
+	go repoAccount.FindAll(c.Request().Context(), group, channel)
+
+	data := <-channel
+
+	group.Wait()
+
+	if data.Error != nil {
+		tools.SenderResponseJSON(c, http.StatusInternalServerError, "Server Error", nil)
+		panic(data.Error)
 	}
 
-	data, error := repoAccount.FindAll(c.Request().Context())
-
-	if error != nil {
-		res.Status = http.StatusInternalServerError
-		res.Message = "Terjadi kesalahan ketika menarik data"
-		res.Data = error
+	if data.Data == nil {
+		return tools.SenderResponseJSON(c, http.StatusOK, "Data Account Empty", nil)
 	}
 
-	res.Status = http.StatusOK
-	res.Message = "Berhasil mengembalikan data"
-	res.Data = data
-
-	return c.JSON(http.StatusOK, res)
+	return tools.SenderResponseJSON(c, http.StatusOK, "Berhasil mengembalikan data Account", data.Data)
 
 }
 
 func (st *AccountControllerImpl) GetByEmail(c echo.Context) error {
-	return nil
+
+	defer tools.Recover(c)
+
+	group := &sync.WaitGroup{}
+
+	channel := make(chan entity.TemplateChannelResponse)
+
+	defer close(channel)
+
+	db := repository.GetConnectionPostgres()
+
+	defer db.Close()
+
+	repoAccount := repository.NewAccountRepo(db)
+
+	go repoAccount.FindByEmail(c.Request().Context(), c.Param("email"), group, channel)
+
+	data := <-channel
+
+	group.Wait()
+
+	if data.Error != nil {
+		tools.SenderResponseJSON(c, http.StatusInternalServerError, "Server Error", nil)
+		panic(data.Error)
+	}
+
+	if data.Data == nil {
+		return tools.SenderResponseJSON(c, http.StatusNotFound, "Email not found", nil)
+	}
+
+	return tools.SenderResponseJSON(c, http.StatusOK, "Berhasil mengembalikan data email", data.Data)
+
 }

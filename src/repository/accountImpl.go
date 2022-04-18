@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"sync"
 
 	"github.com/Manusiabodoh4/go-sql/src/entity"
 )
@@ -15,55 +16,113 @@ func NewAccountRepo(_database *sql.DB) AccountRepo {
 	return &AccountRepoImpl{database: _database}
 }
 
-func (st *AccountRepoImpl) FindAll(ctx context.Context) ([]entity.AccountEntity, error) {
+func (st *AccountRepoImpl) FindAll(ctx context.Context, group *sync.WaitGroup, channel chan entity.TemplateChannelResponse) {
+
+	defer group.Done()
+
+	group.Add(1)
 
 	script := "SELECT * FROM accounts"
 	rows, err := st.database.QueryContext(ctx, script)
 
 	if err != nil {
-		return nil, err
+		channel <- entity.TemplateChannelResponse{Error: err, Data: nil}
+		return
 	}
 
 	defer rows.Close()
 
 	var res []entity.AccountEntity
 
+	if !rows.Next() {
+		channel <- entity.TemplateChannelResponse{Data: nil, Error: nil}
+		return
+	}
+
 	for rows.Next() {
 		account := entity.AccountEntity{}
-		rows.Scan(&account.Id, &account.Nama, &account.Email, &account.Password, &account.Age)
+		rows.Scan(&account.Nama, &account.Email, &account.Password, &account.Age)
 		res = append(res, account)
 	}
 
-	return res, nil
+	channel <- entity.TemplateChannelResponse{Data: res, Error: nil}
 
 }
-func (st *AccountRepoImpl) FindByEmail(ctx context.Context, email string) (entity.AccountEntity, error) {
+func (st *AccountRepoImpl) FindByEmail(ctx context.Context, email string, group *sync.WaitGroup, channel chan entity.TemplateChannelResponse) {
 
-	script := "SELECT * FROM accounts WHERE email = ? LIMIT 1"
+	defer group.Done()
+
+	group.Add(1)
+
+	script := "SELECT * FROM accounts WHERE email = $1 LIMIT 1"
 	rows, err := st.database.QueryContext(ctx, script, email)
 
 	var account entity.AccountEntity
 
 	if err != nil {
-		return account, err
+		channel <- entity.TemplateChannelResponse{Error: err, Data: account}
+		return
 	}
 
 	defer rows.Close()
 
-	for rows.Next() {
-		rows.Scan(&account.Id, &account.Nama, &account.Email, &account.Password, &account.Age)
+	if rows.Next() {
+		rows.Scan(&account.Nama, &account.Email, &account.Password, &account.Age)
+		channel <- entity.TemplateChannelResponse{Error: nil, Data: account}
+		return
 	}
 
-	return account, nil
+	channel <- entity.TemplateChannelResponse{Error: nil, Data: nil}
 
 }
-func (st *AccountRepoImpl) Insert(ctx context.Context, data entity.AccountEntity) (bool, error) {
+func (st *AccountRepoImpl) Insert(ctx context.Context, data entity.AccountEntity, group *sync.WaitGroup, channel chan entity.TemplateChannelResponse) {
 
-	return true, nil
+	defer group.Done()
+
+	group.Add(1)
+
+	script := "INSERT INTO accounts (nama, email, password, age) VALUES ($1,$2,$3,$4)"
+	_, err := st.database.ExecContext(ctx, script, data.Nama, data.Email, data.Password, data.Age)
+
+	if err != nil {
+		channel <- entity.TemplateChannelResponse{Error: err, Data: false}
+		return
+	}
+
+	channel <- entity.TemplateChannelResponse{Error: nil, Data: true}
+
 }
-func (st *AccountRepoImpl) Update(ctx context.Context, data entity.AccountEntity) (bool, error) {
-	return true, nil
+func (st *AccountRepoImpl) Update(ctx context.Context, data entity.AccountEntity, group *sync.WaitGroup, channel chan entity.TemplateChannelResponse) {
+
+	defer group.Done()
+
+	group.Add(1)
+
+	script := "UPDATE accounts SET nama = $1 , password = $2, age = $3"
+	_, err := st.database.ExecContext(ctx, script, data.Nama, data.Password, data.Age)
+
+	if err != nil {
+		channel <- entity.TemplateChannelResponse{Error: err, Data: false}
+		return
+	}
+
+	channel <- entity.TemplateChannelResponse{Error: nil, Data: true}
+
 }
-func (st *AccountRepoImpl) DeleteById(ctx context.Context, id uint64) (bool, error) {
-	return true, nil
+func (st *AccountRepoImpl) DeleteById(ctx context.Context, email string, group *sync.WaitGroup, channel chan entity.TemplateChannelResponse) {
+
+	defer group.Done()
+
+	group.Add(1)
+
+	script := "DELETE FROM accounts WHERE email = ?"
+	_, err := st.database.ExecContext(ctx, script, email)
+
+	if err != nil {
+		channel <- entity.TemplateChannelResponse{Error: err, Data: false}
+		return
+	}
+
+	channel <- entity.TemplateChannelResponse{Error: nil, Data: true}
+
 }

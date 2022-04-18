@@ -5,3 +5,8 @@ type TemplateResponse struct {
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
 }
+
+type TemplateChannelResponse struct {
+	Data  interface{}
+	Error error
+}

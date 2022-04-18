@@ -12,6 +12,6 @@ func NewAccountRoutes(router *echo.Group) {
 	router.GET("/login", accountController.Login)
 	router.GET("/register", accountController.Register)
 	router.GET("/all", accountController.GetAll)
-	router.GET("/filter/:email", accountController.GetByEmail)
+	router.GET("/filter/email/:email", accountController.GetByEmail)
 
 }
