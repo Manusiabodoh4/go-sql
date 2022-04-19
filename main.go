@@ -14,7 +14,7 @@ func main() {
 	app.Use(middleware.Logger())
 	app.Use(middleware.CORS())
 
-	routes.NewAccountRoutes(app.Group("/v1/account"))
+	routes.NewRoutesAccount(app.Group("/v1/account")).NewCreateRoutes()
 
 	app.Logger.Fatal(app.Start(":4567"))
 

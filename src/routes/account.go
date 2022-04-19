@@ -5,13 +5,22 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func NewAccountRoutes(router *echo.Group) {
+type RoutesAccount struct {
+	Router *echo.Group
+}
+
+func NewRoutesAccount(router *echo.Group) Routes {
+	return &RoutesAccount{Router: router}
+}
+
+func (st *RoutesAccount) NewCreateRoutes() {
 
 	accountController := controller.NewAccountController()
 
-	router.GET("/login", accountController.Login)
-	router.GET("/register", accountController.Register)
-	router.GET("/all", accountController.GetAll)
-	router.GET("/filter/email/:email", accountController.GetByEmail)
+	st.Router.GET("/all", accountController.GetAll)
+	st.Router.GET("/filter/email/:email", accountController.GetByEmail)
+
+	st.Router.POST("/login", accountController.Login)
+	st.Router.POST("/register", accountController.Register)
 
 }

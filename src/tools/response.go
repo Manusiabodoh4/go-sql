@@ -5,7 +5,17 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func SenderResponseJSON(c echo.Context, code int, msg string, data interface{}) error {
+type ToolsResponse interface {
+	SenderResponseJSON(c echo.Context, code int, msg string, data interface{}) error
+}
+
+type ToolsResponseImpl struct{}
+
+func NewToolsReponse() ToolsResponse {
+	return &ToolsResponseImpl{}
+}
+
+func (st *ToolsResponseImpl) SenderResponseJSON(c echo.Context, code int, msg string, data interface{}) error {
 	res := entity.TemplateResponse{}
 	res.Status = code
 	res.Message = msg
