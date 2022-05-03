@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"strconv"
 	"strings"
 
 	"github.com/Manusiabodoh4/go-sql/src/entity"
@@ -72,9 +73,16 @@ func (st *AccountRepo) InsertOne(ctx context.Context, channel chan entity.Templa
 func (st *AccountRepo) InsertMany(ctx context.Context, channel chan entity.TemplateChannelResponse, value []map[string]interface{}) {
 	query := "INSERT INTO accounts (nama, email, password, age) VALUES "
 	var data []interface{}
+	var index int
 	for _, row := range value {
-		query += "(?, ?, ?, ?),"
-		data = append(data, row["Nama"], row["Email"], row["Password"], row["Age"])
+		query += "("
+		for range row {
+			query += "$" + strconv.Itoa(index+1) + ","
+			index++
+		}
+		query = strings.TrimSuffix(query, ",")
+		query += "),"
+		data = append(data, row["nama"], row["email"], row["password"], row["age"])
 	}
 	query = strings.TrimSuffix(query, ",")
 	stmt, err := st.Database.PrepareContext(ctx, query)

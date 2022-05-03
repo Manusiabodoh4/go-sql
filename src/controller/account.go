@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/Manusiabodoh4/go-sql/src/entity"
@@ -13,6 +14,7 @@ import (
 type AccountController interface {
 	Login(c echo.Context) error
 	Register(c echo.Context) error
+	RegisterMany(c echo.Context) error
 	GetAll(c echo.Context) error
 	GetByEmail(c echo.Context) error
 }
@@ -76,6 +78,61 @@ func (st *AccountControllerImpl) Register(c echo.Context) error {
 		panic(data.Error)
 	}
 	return st.Response.SenderResponseJSON(c, http.StatusOK, "Register Success", body)
+}
+
+func (st *AccountControllerImpl) RegisterMany(c echo.Context) error {
+
+	defer st.Logger.LoggerError(c)
+
+	st.Repository = repository.NewAccountRepo(connection.GetConnectionPostgres())
+
+	var (
+		body  entity.RequestAccountRegisterMany
+		data  entity.TemplateChannelResponse
+		param []map[string]interface{}
+		b     []byte
+		tMap  map[string]interface{}
+	)
+
+	err := c.Bind(&body)
+	if err != nil {
+		panic(err)
+	}
+
+	channel := make(chan entity.TemplateChannelResponse)
+
+	defer close(channel)
+
+	for _, account := range body.Data {
+
+		b, _ = json.Marshal(account)
+		json.Unmarshal(b, &tMap)
+		param = append(param, tMap)
+
+		go st.Repository.FindWithParam(c.Request().Context(), channel, "Email = $1", account.Email)
+
+		data = <-channel
+
+		if data.Error != nil {
+			panic(data.Error)
+		}
+
+		if data.Data != nil {
+			return st.Response.SenderResponseJSON(c, http.StatusAlreadyReported, "Email Already Registered", data.Data)
+		}
+
+	}
+
+	go st.Repository.InsertMany(c.Request().Context(), channel, param)
+
+	data = <-channel
+
+	if data.Error != nil {
+		panic(data.Error)
+	}
+
+	return st.Response.SenderResponseJSON(c, http.StatusOK, "Register Success", body)
+
 }
 
 func (st *AccountControllerImpl) GetAll(c echo.Context) error {

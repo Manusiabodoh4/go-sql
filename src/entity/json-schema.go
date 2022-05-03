@@ -12,4 +12,8 @@ type (
 		Password string `json:"password"`
 		Age      uint32 `json:"age"`
 	}
+
+	RequestAccountRegisterMany struct {
+		Data []AccountEntity `json:"data"`
+	}
 )

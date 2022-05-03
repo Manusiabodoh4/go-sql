@@ -22,5 +22,6 @@ func (st *RoutesAccount) NewCreateRoutes() {
 
 	st.Router.POST("/login", accountController.Login)
 	st.Router.POST("/register", accountController.Register)
+	st.Router.POST("/register/many", accountController.RegisterMany)
 
 }
